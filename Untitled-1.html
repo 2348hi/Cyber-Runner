@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cyber Runner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEREQAAAAAAEAABAAAAAAAAAAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//wAA//8AAP//AADAAwAAwAMAAMADAADAAwAAwAMAAMADAADAAwAAwAMAAMADAAD//wAA//8AAP//AAD//wAA">
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a2e;
+            font-family: 'Orbitron', sans-serif;
+            color: #e94560;
+        }
+        #game-container {
+            position: relative;
+            width: 90vw;
+            max-width: 800px;
+            height: 50vh;
+            max-height: 400px;
+            background: #16213e;
+            overflow: hidden;
+            border: 2px solid #0f3460;
+            box-shadow: 0 0 20px #e94560;
+        }
+        .player, .police {
+            position: absolute;
+            width: 30px;
+            height: 50px;
+            background: #e94560;
+            border-radius: 5px;
+            transition: bottom 0.1s;
+        }
+        .police {
+            background: #0f3460;
+        }
+        .obstacle {
+            position: absolute;
+            width: 30px;
+            height: 50px;
+            background: #533483;
+            border-radius: 5px;
+        }
+        .coin {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #e94560;
+            border-radius: 50%;
+            animation: coin-spin 1s linear infinite;
+        }
+        @keyframes coin-spin {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(22, 33, 62, 0.8);
+            color: #e94560;
+            z-index: 100;
+        }
+        .screen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #e94560;
+        }
+        .screen button {
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 24px;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            background: #0f3460;
+            color: #e94560;
+            border: none;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .screen button:hover {
+            background: #e94560;
+            color: #0f3460;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #e94560;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #e94560;
+            font-size: 24px;
+            text-shadow: 0 0 5px #e94560;
+        }
+        #final-score {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #0f3460;
+            text-shadow: 0 0 5px #0f3460;
+        }
+        @media (max-width: 820px) {
+            #game-container {
+                width: 95vw;
+                height: 40vh;
+            }
+            .game-title {
+                font-size: 48px;
+            }
+            .screen h1 {
+                font-size: 36px;
+            }
+            .screen button {
+                font-size: 18px;
+                padding: 10px 20px;
+            }
+            #score {
+                font-size: 18px;
+            }
+            #final-score {
+                font-size: 24px;
+            }
+        }
+        @media (max-height: 600px) {
+            .game-title {
+                font-size: 36px;
+                margin: 10px 0;
+            }
+            #game-container {
+                height: 45vh;
+            }
+        }
+        .game-title {
+            font-size: 72px;
+            color: #e94560;
+            text-shadow: 0 0 20px #e94560;
+            margin: 20px 0;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+        .total-coins {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #e94560;
+            font-size: 24px;
+            text-shadow: 0 0 5px #e94560;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="total-coins">Total Coins: 0</div>
+    <h1 class="game-title">Cyber Runner</h1>
+    <div id="game-container">
+        <div id="start-screen" class="screen">
+            <h1>Cyber Runner</h1>
+            <button onclick="startGame()">Start Game</button>
+        </div>
+        <div id="pause-screen" class="screen" style="display: none;">
+            <h1>Paused</h1>
+            <button onclick="resumeGame()">Resume Game</button>
+            <button onclick="returnToMenu()">Main Menu</button>
+        </div>
+        <div id="death-screen" class="screen" style="display: none;">
+            <h1>Game Over</h1>
+            <p id="final-score"></p>
+            <button onclick="restartGame()">Play Again</button>
+            <button onclick="returnToMenu()">Main Menu</button>
+        </div>
+        <div id="score">Coins: 0</div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const startScreen = document.getElementById('start-screen');
+        const pauseScreen = document.getElementById('pause-screen');
+        const deathScreen = document.getElementById('death-screen');
+        const scoreDisplay = document.getElementById('score');
+
+        let player, police;
+        let obstacles = [];
+        let coins = [];
+        let score = 0;
+        let gameLoop;
+        let isGameRunning = false;
+        let playerY = 300;
+        let playerVelocity = 0;
+        const gravity = 0.4;
+        const jumpForce = -11;
+        let gameSpeed = 3;
+        let obstacleSpawnRate = 0.015;
+        const speedIncrease = 0.0001;
+        const maxSpeed = 8;
+        let policeOffset = 20;  // Starting position of police moved back
+        let totalCoins = 0;  // Add this with other variables at the top
+        let policeY = 300;
+        let policeVelocity = 0;
+        let lastCoinCollectTime = 0;
+        let policeAdvanceInterval;
+        const COIN_TIMEOUT = 5000; // 5 seconds in milliseconds
+        const POLICE_ADVANCE_SPEED = 0.2; // How fast police moves forward when player is inactive
+
+        // Load saved data
+        if (localStorage.getItem('gameData')) {
+            const savedData = JSON.parse(localStorage.getItem('gameData'));
+            totalCoins = savedData.totalCoins || 0;
+            updateTotalCoinsDisplay();
+        }
+
+        function createPlayer() {
+            player = document.createElement('div');
+            player.className = 'player';
+            player.style.left = '100px';
+            player.style.bottom = playerY + 'px';
+            gameContainer.appendChild(player);
+
+            police = document.createElement('div');
+            police.className = 'police';
+            police.style.left = policeOffset + 'px';
+            police.style.bottom = policeY + 'px';
+            gameContainer.appendChild(police);
+        }
+
+        function createObstacle() {
+            const obstacle = document.createElement('div');
+            obstacle.className = 'obstacle';
+            obstacle.style.left = '800px';
+            
+            // Random height between 0 (ground) and 250px
+            // We leave some space at the top for jumping over obstacles
+            const randomHeight = Math.floor(Math.random() * 250);
+            obstacle.style.bottom = randomHeight + 'px';
+            
+            gameContainer.appendChild(obstacle);
+            obstacles.push(obstacle);
+        }
+
+        function createCoin() {
+            const coin = document.createElement('div');
+            coin.className = 'coin';
+            coin.style.left = '800px';
+            coin.style.bottom = Math.random() * 300 + 50 + 'px';
+            gameContainer.appendChild(coin);
+            coins.push(coin);
+        }
+
+        function updateGame() {
+            // Increase game speed over time
+            if (gameSpeed < maxSpeed) {
+                gameSpeed += speedIncrease;
+            }
+
+            // Make police fall behind based on score
+            if (score > 0 && policeOffset > -100) {  // Don't let police go too far left
+                policeOffset -= 0.05;  // Gradually move police left
+                police.style.left = policeOffset + 'px';
+            }
+
+            // Apply gravity to player
+            playerVelocity += gravity;
+            playerY -= playerVelocity;
+
+            // Apply gravity to police with delay
+            policeVelocity += gravity;
+            policeY -= policeVelocity;
+
+            // Ground and ceiling collision for player
+            if (playerY <= 0) {
+                gameOver();
+            }
+            if (playerY >= gameContainer.clientHeight - player.clientHeight) {
+                playerY = gameContainer.clientHeight - player.clientHeight;
+                playerVelocity = 0;
+            }
+
+            // Ground and ceiling collision for police
+            if (policeY <= 0) {
+                policeY = 0;
+                policeVelocity = 0;
+            }
+            if (policeY >= gameContainer.clientHeight - police.clientHeight) {
+                policeY = gameContainer.clientHeight - police.clientHeight;
+                policeVelocity = 0;
+            }
+
+            // Make police jump after player with delay
+            if (playerVelocity < 0) {
+                policeVelocity = jumpForce * 0.75;  // Reduced from 0.85 to 0.75
+            }
+
+            player.style.bottom = playerY + 'px';
+            police.style.bottom = policeY + 'px';
+
+            // Add police collision check
+            if (checkCollision(player, police)) {
+                gameOver();
+            }
+
+            // Move obstacles
+            obstacles.forEach((obstacle, index) => {
+                const left = parseInt(obstacle.style.left) - gameSpeed;
+                if (left < -50) {
+                    obstacle.remove();
+                    obstacles.splice(index, 1);
+                } else {
+                    obstacle.style.left = left + 'px';
+                    // Collision detection
+                    if (checkCollision(player, obstacle)) {
+                        gameOver();
+                    }
+                }
+            });
+
+            // Move coins
+            coins.forEach((coin, index) => {
+                const left = parseInt(coin.style.left) - gameSpeed;
+                if (left < -20) {
+                    coin.remove();
+                    coins.splice(index, 1);
+                } else {
+                    coin.style.left = left + 'px';
+                    // Coin collection
+                    if (checkCollision(player, coin)) {
+                        coin.remove();
+                        coins.splice(index, 1);
+                        score++;
+                        lastCoinCollectTime = Date.now(); // Reset the timer when coin is collected
+                        scoreDisplay.textContent = 'Coins: ' + score;
+                    }
+                }
+            });
+
+            // Adjust spawn rates based on game speed
+            obstacleSpawnRate = 0.015 * (gameSpeed / 3);
+            if (Math.random() < obstacleSpawnRate) createObstacle();
+            if (Math.random() < 0.02) createCoin();
+        }
+
+        function checkCollision(element1, element2) {
+            const rect1 = element1.getBoundingClientRect();
+            const rect2 = element2.getBoundingClientRect();
+            return !(rect1.right < rect2.left || 
+                    rect1.left > rect2.right || 
+                    rect1.bottom < rect2.top || 
+                    rect1.top > rect2.bottom);
+        }
+
+        function jump() {
+            playerVelocity = jumpForce;
+        }
+
+        function startGame() {
+            startScreen.style.display = 'none';
+            createPlayer();
+            isGameRunning = true;
+            lastCoinCollectTime = Date.now();
+            startPoliceAdvanceTimer();
+            gameLoop = requestAnimationFrame(gameUpdate);
+        }
+
+        function gameUpdate() {
+            if (isGameRunning) {
+                updateGame();
+                gameLoop = requestAnimationFrame(gameUpdate);
+            }
+        }
+
+        function pauseGame() {
+            if (isGameRunning) {
+                cancelAnimationFrame(gameLoop);
+                isGameRunning = false;
+                pauseScreen.style.display = 'flex';
+            }
+        }
+
+        function resumeGame() {
+            pauseScreen.style.display = 'none';
+            isGameRunning = true;
+            gameLoop = requestAnimationFrame(gameUpdate);
+        }
+
+        function gameOver() {
+            cancelAnimationFrame(gameLoop);
+            clearInterval(policeAdvanceInterval); // Clear the interval
+            isGameRunning = false;
+            totalCoins += score;
+            updateTotalCoinsDisplay();
+            saveGameData();
+            document.getElementById('final-score').textContent = 'Final Score: ' + score;
+            deathScreen.style.display = 'flex';
+        }
+
+        function restartGame() {
+            clearInterval(policeAdvanceInterval); // Clear existing interval
+            // Clear game elements
+            player.remove();
+            police.remove();
+            obstacles.forEach(obstacle => obstacle.remove());
+            coins.forEach(coin => coin.remove());
+            obstacles = [];
+            coins = [];
+            score = 0;
+            playerY = 300;
+            playerVelocity = 0;
+            scoreDisplay.textContent = 'Coins: 0';
+            deathScreen.style.display = 'none';
+            gameSpeed = 3;
+            obstacleSpawnRate = 0.015;
+            policeOffset = 20;  // Reset police position
+            policeY = 300;
+            policeVelocity = 0;
+            lastCoinCollectTime = Date.now(); // Reset the timer
+            startGame();
+        }
+
+        function returnToMenu() {
+            cancelAnimationFrame(gameLoop);
+            clearInterval(policeAdvanceInterval); // Clear the interval
+            isGameRunning = false;
+            
+            // Clear game elements
+            if (player) player.remove();
+            if (police) police.remove();
+            obstacles.forEach(obstacle => obstacle.remove());
+            coins.forEach(coin => coin.remove());
+            obstacles = [];
+            coins = [];
+            
+            // Reset game state
+            score = 0;
+            playerY = 300;
+            playerVelocity = 0;
+            gameSpeed = 3;
+            obstacleSpawnRate = 0.015;
+            policeOffset = 20;
+            policeY = 300;
+            policeVelocity = 0;
+            scoreDisplay.textContent = 'Coins: 0';
+            
+            // Hide all screens except start screen
+            pauseScreen.style.display = 'none';
+            deathScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+        }
+
+        // Add this function to update the total coins display
+        function updateTotalCoinsDisplay() {
+            document.querySelector('.total-coins').textContent = 'Total Coins: ' + totalCoins;
+        }
+
+        // Add this function to save game data
+        function saveGameData() {
+            const gameData = {
+                totalCoins: totalCoins
+            };
+            localStorage.setItem('gameData', JSON.stringify(gameData));
+        }
+
+        // Add these new functions
+        function startPoliceAdvanceTimer() {
+            policeAdvanceInterval = setInterval(() => {
+                if (isGameRunning && Date.now() - lastCoinCollectTime > COIN_TIMEOUT) {
+                    // Move police closer if player hasn't collected coins recently
+                    policeOffset = Math.min(policeOffset + POLICE_ADVANCE_SPEED, 80); // Don't let police get too close
+                    police.style.left = policeOffset + 'px';
+                }
+            }, 100); // Check every 100ms
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (isGameRunning) jump();
+            }
+            if (e.code === 'Escape' || e.code === 'KeyP') {
+                if (isGameRunning) pauseGame();
+                else resumeGame();
+            }
+        });
+    </script>
+</body>
+</html>
